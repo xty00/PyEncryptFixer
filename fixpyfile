@@ -1,0 +1,124 @@
+import os
+import subprocess
+import pyautogui
+import time
+import cv2
+# 将主程序文件fixpyfile、revert_files.bat复制到目标路径，并在目标路径执行“python fixpyfile”命令启动程序，可以修复目标路径及子文件夹下的py文件
+# 修复前请按照自身配置修改35行另存为的快捷键，我的电脑由于限制了默认的快捷键使用所以将快捷键命令由Ctrl + Alt + S调整成了Ctrl + Shift + S
+# 执行脚本前请将输入法调整为英文，防止快捷键失效
+# 此脚本使用视觉方式识别目标文件名后缀，如果需要替换其他文件名可以替换模板图片并修改目标文件名（91行、93行）
+# 定义Notepad++路径和目标文件夹
+notepadpp_path = r"C:\Program Files\Notepad++\notepad++.exe"
+folder_path = "."  # 当前文件夹
+# 定义模板图片的存放文件夹，建议设置成绝对路径,如“D:\templates”
+template_path = r".\templates"
+
+def find_and_click(template_name, threshold=0.8):
+    template = cv2.imread(os.path.join(template_path, template_name))
+    screenshot = pyautogui.screenshot()
+    screenshot.save("temp_screenshot.png")
+    screenshot = cv2.imread("temp_screenshot.png")
+    
+    result = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
+    _, max_val, _, max_loc = cv2.minMaxLoc(result)
+    
+    if max_val > threshold:
+        click_location = (max_loc[0] + template.shape[1] // 2, max_loc[1] + template.shape[0] // 2)
+        pyautogui.click(click_location)
+        return max_val
+    else:
+        return max_val
+
+def save_as_py(file_path, new_file_name):
+    subprocess.Popen([notepadpp_path, file_path])
+    time.sleep(1)  # 等待 Notepad++ 加载文件
+    
+    # 模拟按下 Ctrl + Shift + S 打开“另存为”对话框
+    pyautogui.hotkey('ctrl', 'shift', 's')
+    time.sleep(1)  # 等待对话框出现
+    
+    # 尝试找到并点击“文件类型”下拉菜单
+    match_value = find_and_click("file_type_dropdown.png")
+    if match_value is None or match_value < 0.8:
+        print(f"未能找到文件类型下拉菜单，请检查模板图片是否正确，匹配度: {match_value:.2f}")
+        return False
+    else:
+        print(f"已找到文件类型下拉菜单，匹配度: {match_value:.2f}")
+    
+    # 按 "A" 键快速匹配到 "All types" 选项
+    pyautogui.press('a')
+    time.sleep(1)  # 等待选项出现
+    
+    # 尝试找到并点击 "All types" 选项
+    match_value = find_and_click("all_types_template.png")
+    if match_value is None or match_value < 0.8:
+        print(f"未能找到 *.* 选项，请检查模板图片是否正确，匹配度: {match_value:.2f}")
+        return False
+    else:
+        print(f"已找到并选中 *.* 文件类型，匹配度: {match_value:.2f}")
+    
+    # 按回车键确认文件类型
+    pyautogui.press('enter')
+    time.sleep(1)  # 等待文件类型确认
+    
+    # 确保焦点在文件名输入框中
+    pyautogui.hotkey('alt', 'n')  # 切换到文件名输入框
+    time.sleep(0.5)  # 等待焦点切换
+    
+    # 清除当前文件名（如果需要）
+    pyautogui.hotkey('ctrl', 'a')  # 全选
+    pyautogui.press('backspace')  # 删除
+    
+    # 输入新的文件名
+    pyautogui.typewrite(new_file_name)
+    
+    # 保存文件
+    pyautogui.hotkey('alt', 's')  # 按 Alt + S 保存
+    time.sleep(1)  # 等待保存完成
+    
+    # 检查文件名是否修改成功
+    window_title = pyautogui.getWindowsWithTitle('Notepad++')[0]
+    if new_file_name in window_title.title:
+        print(f"已另存为: {new_file_name}")
+        return True
+    else:
+        print("文件名未修改成功，请检查模板图片是否正确。")
+        return False
+
+def convert_files():
+    for root, dirs, files in os.walk(folder_path):
+        for file_name in files:
+            if file_name.endswith(".py"):
+                full_path = os.path.join(root, file_name)
+                new_file_name = file_name.replace(".py", "_py")
+                new_full_path = os.path.join(root, new_file_name)
+                
+                if not save_as_py(full_path, new_file_name):
+                    print("终止执行后续操作。")
+                    return  # 终止执行后续操作
+                
+                os.remove(full_path)  # 删除原文件
+                print(f"已删除原文件: {full_path}")
+                
+                # 关闭当前文件
+                pyautogui.hotkey('ctrl', 'w')
+                time.sleep(1)  # 等待文件关闭
+
+def revert_files():
+	# 调用 revert_files.bat
+	# 使用bat的原因是我的命令提示符执行python命令会导致.py文件被加密，但bat脚本重命名不会
+    subprocess.run(["revert_files.bat"], shell=True)
+    #for root, dirs, files in os.walk(folder_path):
+    #    for file_name in files:
+    #        if file_name.endswith("_py"):
+    #            full_path = os.path.join(root, file_name)
+    #            new_file_name = file_name.replace("_py", ".py")
+    #            new_full_path = os.path.join(root, new_file_name)
+    #            
+    #            os.rename(full_path, new_full_path)
+    #            print(f"已将 {file_name} 改回 {new_file_name}")
+
+if __name__ == "__main__":
+    convert_files()
+    # 如果需要将文件从 _py 改回 .py，取消注释下面这行
+    revert_files()
