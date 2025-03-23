@@ -7,6 +7,14 @@
 
 **PyEncryptFixer** 是一个用于解决自动加密 .py 文件导致的执行错误的自动化脚本，可用于处理DGS加密的”.py“文件。由于某些加密工具可能会导致 .py 文件无法正常执行，PyEncryptFixer 通过模拟用户操作，将加密后的 .py 文件转换为可执行的 _py 文件格式，并提供恢复功能，将文件改回原始的 .py 格式。
 
+被加密后的文件图标是这样的
+![image](img/%E8%A2%AB%E5%8A%A0%E5%AF%86%E7%9A%84%E6%96%87%E4%BB%B6%E5%B7%A6%E4%B8%8B%E8%A7%92%E6%9C%89%E5%B0%8F%E9%94%81%E5%9B%BE%E6%A0%87%EF%BC%8C%E8%A7%A3%E5%AF%86%E5%90%8E%E8%AF%B7%E6%A3%80%E6%9F%A5%E5%B0%8F%E9%94%81%E5%9B%BE%E6%A0%87%E6%9C%89%E6%B2%A1%E6%9C%89%E6%B6%88%E5%A4%B1.png)
+,左下角有小锁图标说明加密了。
+
+在没有加密的电脑打开了是乱码
+
+![image](img/%E5%8A%A0%E5%AF%86%E6%96%87%E4%BB%B6%E5%B1%95%E7%A4%BA%E6%95%88%E6%9E%9C.png)
+
 ## 功能
 
 - **自动查找并点击 UI 元素**: 使用图像识别技术自动定位并点击 Notepad++ 中的特定 UI 元素。
@@ -91,6 +99,9 @@ notepadpp_path = r"C:\Program Files\Notepad++\notepad++.exe"
 
 在 Notepad++ 上方快捷菜单点击【运行(R)】,选择【管理快捷键...】,在【快捷键管理】弹出窗切换至【主菜单】标签页，双击【另存为(A)...】,在弹出窗勾选需要调整的快捷键如 CTRL + SHIFT + S，修改完毕后点击【确定】进行保存，当出现快捷键冲突时将冲突的快捷键调整成其他内容，如“全部保存(E)”存在冲突，则将其快捷键调整为 CTRL + ALT + S。
 
+![image](img/%E4%BF%AE%E6%94%B9notepad%2B%2B%E5%BF%AB%E6%8D%B7%E9%94%AE%E5%AE%9A%E4%B9%89.png)
+
+
 ## 使用方法
 
 ### 1. 准备模板图片
@@ -146,6 +157,7 @@ PyEncryptFixer/
 ├── fixpyfile          #主文件1，用于改名解密
 ├── revert_files.bat   #主文件2，用于恢复文件名.py
 ├── requirements.txt   #虚拟环境依赖配置文件
+├── test.py            #已被加密的测试文件
 ├── templates/         #模板文件夹
 │   ├── file_type_dropdown.png    #用于确认文件类型下拉菜单的位置,可以根据电脑的实际情况进行重新截屏及替换操作，文件名一致即可
 │   └── all_types_template.png    #用于确认已选中文件类型“All Type(*.*)”,可以根据电脑的实际情况进行重新截屏及替换操作，文件名一致即可
@@ -181,7 +193,7 @@ python test.py
 
 ## 贡献
 
-欢迎提出问题（Issues）和拉取请求（Pull Requests）。如果您在使用过程中遇到任何问题或有任何改进建议，请随时在 [Issues](https://github.com/您的用户名/PyEncryptFixer/issues) 页面中提出。
+欢迎提出问题（Issues）和拉取请求（Pull Requests）。如果您在使用过程中遇到任何问题或有任何改进建议，请随时在 [Issues](https://github.com/xty00/PyEncryptFixer/issues) 页面中提出。
 
 ## 许可证
 
