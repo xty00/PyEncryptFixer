@@ -3,12 +3,18 @@ import subprocess
 import pyautogui
 import time
 import cv2
+import math
+import re
+from collections import defaultdict		   
 # 将主程序文件fixpyfile、revert_files.bat复制到目标路径，并在目标路径执行“python fixpyfile”命令启动程序，可以修复目标路径及子文件夹下的py文件
 # 修复前请按照自身配置修改35行另存为的快捷键，我的电脑由于限制了默认的快捷键使用所以将快捷键命令由Ctrl + Alt + S调整成了Ctrl + Shift + S
 # 执行脚本前请将输入法调整为英文，防止快捷键失效
 # 此脚本使用视觉方式识别目标文件名后缀，如果需要替换其他文件名可以替换模板图片并修改目标文件名（91行、93行）
+
 # 定义Notepad++路径和目标文件夹
 notepadpp_path = r"C:\Program Files\Notepad++\notepad++.exe"
+# 定义PowerShell脚本路径
+powershell_script_path = r"cklock.ps1"							  
 folder_path = "."  # 当前文件夹
 # 定义模板图片的存放文件夹，建议设置成绝对路径,如“D:\templates”
 template_path = r".\templates"
@@ -31,11 +37,11 @@ def find_and_click(template_name, threshold=0.8):
 
 def save_as_py(file_path, new_file_name):
     subprocess.Popen([notepadpp_path, file_path])
-    time.sleep(1)  # 等待 Notepad++ 加载文件
+    time.sleep(0.3)  # 等待 Notepad++ 加载文件
     
     # 模拟按下 Ctrl + Shift + S 打开“另存为”对话框
     pyautogui.hotkey('ctrl', 'shift', 's')
-    time.sleep(1)  # 等待对话框出现
+    time.sleep(0.5)  # 等待对话框出现
     
     # 尝试找到并点击“文件类型”下拉菜单
     match_value = find_and_click("file_type_dropdown.png")
@@ -74,7 +80,7 @@ def save_as_py(file_path, new_file_name):
     
     # 保存文件
     pyautogui.hotkey('alt', 's')  # 按 Alt + S 保存
-    time.sleep(1)  # 等待保存完成
+    time.sleep(0.8)  # 等待保存完成
     
     # 检查文件名是否修改成功
     window_title = pyautogui.getWindowsWithTitle('Notepad++')[0]
@@ -84,8 +90,95 @@ def save_as_py(file_path, new_file_name):
     else:
         print("文件名未修改成功，请检查模板图片是否正确。")
         return False
+		
+def replace_extension(filename, old_ext, new_ext):
+    return re.sub(rf'({re.escape(old_ext)}$)', new_ext, filename, flags=re.IGNORECASE)
+# 熵值检测函数,此方法改用PowerShell重写，python被加密后可能导致判断失效
+def calculate_entropy(file_path):
+    #计算文件熵值 (单位: bits/byte)
+    byte_counts = defaultdict(int)
+    total_bytes = 0
+    
+    try:
+        with open(file_path, 'rb') as f:
+            while True:
+                chunk = f.read(4096)  # 分块读取优化大文件处理
+                if not chunk:
+                    break
+                for byte in chunk:
+                    byte_counts[byte] += 1
+                total_bytes += len(chunk)
+    except Exception as e:
+        print(f"读取文件 {file_path} 失败: {str(e)}")
+        return 0.0
 
-def convert_files():
+    if total_bytes == 0:
+        return 0.0
+
+    entropy = 0.0
+    for count in byte_counts.values():
+        probability = count / total_bytes
+        entropy -= probability * (probability and math.log(probability, 2))
+
+    return entropy
+    
+#尝试用多种编码解码输出
+def decode_output(output_bytes):
+    encodings = ['utf-8', 'gbk', 'latin1']  # 尝试的编码列表
+    for encoding in encodings:
+        try:
+            return output_bytes.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    raise ValueError("无法确定正确的编码")
+
+#调用PowerShell脚本判断文件是否加密
+def is_encrypted_by_powershell(file_path):
+    full_path_quoted = f'"{file_path}"'
+    try:
+        print(f"执行命令: powershell.exe -File {powershell_script_path} {full_path_quoted}")
+
+        # 使用 GBK 编码传递路径
+        result = subprocess.run(
+            ["powershell.exe", "-File", powershell_script_path, full_path_quoted.encode("gbk").decode("gbk")],
+#            capture_output=True, text=True, encoding="gbk"  # 设置编码为 GBK
+            capture_output=True
+        )
+        # 动态解码输出DEBUG用
+        stdout = decode_output(result.stdout)
+        #print(f"PowerShell 标准输出:\n{stdout}")
+        if result.stderr:
+            stderr = decode_output(result.stderr)
+            print(f"PowerShell 错误输出:\n{stderr}")
+        
+        # 检查返回值是否为空
+        if not stdout.strip():
+            print("PowerShell 返回值为空")
+            return False
+			
+        # 提取最后一行作为最终结果
+        lines = stdout.strip().splitlines()
+        final_output = lines[-1].strip().lower()
+		
+        # 解析最终的判定结果
+        is_encrypted = final_output == "true"
+        if is_encrypted:
+            print("检测到加密文件")
+        else:
+            print("文件未加密")
+        return is_encrypted
+    except Exception as e:
+        print(f"其他错误: {e}")
+        return False
+    # 打印标准输出和标准错误
+    print(f"PowerShell 标准输出:\n{result.stdout}")
+    if result.stderr:
+        print(f"PowerShell 错误输出:\n{result.stderr}")
+    # 解析最终的判定结果
+    is_encrypted = result.stdout.strip().lower() == "true"
+    return is_encrypted
+
+def convert_files_0_0_1():
     for root, dirs, files in os.walk(folder_path):
         for file_name in files:
             if file_name.endswith(".py"):
@@ -104,6 +197,33 @@ def convert_files():
                 pyautogui.hotkey('ctrl', 'w')
                 time.sleep(1)  # 等待文件关闭
 
+def convert_files():
+    for root, dirs, files in os.walk(folder_path):
+        for file_name in files:
+            if file_name.endswith(".py"):
+                full_path = os.path.abspath(os.path.join(root, file_name))  # 使用绝对路径
+                new_file_name = replace_extension(file_name, ".py", "_py")
+                new_full_path = os.path.join(root, new_file_name)
+                
+                # **新增调用PowerShell脚本判断文件是否加密**
+                print(f"传递给 PowerShell 的文件路径: {full_path}")  # 调试信息
+                if is_encrypted_by_powershell(full_path):
+                    print(f"文件 {file_name} 被识别为加密文件，开始解密...")
+                    
+                    # 调用Notepad++进行解密
+                    if not save_as_py(full_path, new_file_name):
+                        print("终止执行后续操作。")
+                        return  # 终止执行后续操作
+                    
+                    os.remove(full_path)  # 删除原文件
+                    print(f"已处理加密文件: {full_path} -> {new_full_path}")
+                    
+                    # 关闭当前文件
+                    pyautogui.hotkey('ctrl', 'w')
+                    time.sleep(1)  # 等待文件关闭
+                else:
+                    print(f"跳过未加密文件: {file_name}")
+					
 def revert_files():
 	# 调用 revert_files.bat
 	# 使用bat的原因是我的命令提示符执行python命令会导致.py文件被加密，但bat脚本重命名不会

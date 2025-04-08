@@ -156,8 +156,10 @@ PyEncryptFixer/
 │
 ├── fixpyfile          #主文件1，用于改名解密
 ├── revert_files.bat   #主文件2，用于恢复文件名.py
+├── cklock.ps1         #主文件3，用于检查并反馈被查文件加密情况
 ├── requirements.txt   #虚拟环境依赖配置文件
 ├── test.py            #已被加密的测试文件
+├── test.ps1           #加密情况预览脚本，用于评估当前文件夹中可识别的文件加密情况
 ├── templates/         #模板文件夹
 │   ├── file_type_dropdown.png    #用于确认文件类型下拉菜单的位置,可以根据电脑的实际情况进行重新截屏及替换操作，文件名一致即可
 │   └── all_types_template.png    #用于确认已选中文件类型“All Type(*.*)”,可以根据电脑的实际情况进行重新截屏及替换操作，文件名一致即可
